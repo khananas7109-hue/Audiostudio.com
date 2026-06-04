@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audio Studio</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:#0f0f1a;color:#e0e0f0;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px}
+.card{background:#1a1a2e;border:1px solid #2d2d50;border-radius:20px;padding:28px;width:100%;max-width:600px;margin-bottom:16px}
+h1{font-size:1.5rem;font-weight:700;background:linear-gradient(135deg,#a78bfa,#60a5fa);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.subtitle{color:#6b7280;font-size:0.85rem;margin-bottom:20px}
+#dropzone{border:2px dashed #3d3d6b;border-radius:14px;padding:32px 20px;text-align:center;cursor:pointer;transition:all 0.2s;background:#12122a;position:relative}
+#dropzone:hover,#dropzone.dragover{border-color:#a78bfa;background:#1a1535}
+#dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.drop-icon{font-size:2rem;margin-bottom:8px}
+.drop-text{color:#9ca3af;font-size:0.9rem}
+.drop-text span{color:#a78bfa;font-weight:600}
+#file-info{display:none;align-items:center;gap:10px;background:#12122a;border:1px solid #2d2d50;border-radius:10px;padding:12px 14px;margin-top:12px}
+.file-details{flex:1;overflow:hidden}
+.file-name{font-size:0.88rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-size{font-size:0.75rem;color:#6b7280}
+.remove-btn{background:none;border:none;color:#6b7280;cursor:pointer;font-size:1rem;padding:4px}
+.remove-btn:hover{color:#f87171}
+/* Section titles */
+.section-title{font-size:0.75rem;text-transform:uppercase;letter-spacing:0.07em;color:#6b7280;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:#2d2d50}
+/* Controls grid */
+.controls-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.control-box{background:#12122a;border:1px solid #2d2d50;border-radius:12px;padding:14px}
+.control-label{font-size:0.78rem;color:#9ca3af;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.control-label span{color:#a78bfa;font-weight:600;font-size:0.82rem}
+input[type=range]{width:100%;-webkit-appearance:none;height:4px;border-radius:2px;background:#2d2d50;outline:none;cursor:pointer}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:#a78bfa;cursor:pointer}
+input[type=range]::-moz-range-thumb{width:16px;height:16px;border-radius:50%;background:#a78bfa;cursor:pointer;border:none}
+/* Toggle switches */
+.toggle-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.toggle-label{font-size:0.85rem;color:#d1d5db}
+.toggle{position:relative;display:inline-block;width:40px;height:22px}
+.toggle input{opacity:0;width:0;height:0}
+.slider-toggle{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#2d2d50;transition:.3s;border-radius:22px}
+.slider-toggle:before{position:absolute;content:'';height:16px;width:16px;left:3px;bottom:3px;background:#9ca3af;transition:.3s;border-radius:50%}
+.toggle input:checked+.slider-toggle{background:#7c3aed}
+.toggle input:checked+.slider-toggle:before{transform:translateX(18px);background:white}
+/* Preset buttons */
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+.preset-btn{background:#12122a;border:1px solid #2d2d50;color:#9ca3af;padding:6px 14px;border-radius:999px;font-size:0.78rem;cursor:pointer;transition:all 0.2s}
+.preset-btn:hover{border-color:#a78bfa;color:#a78bfa}
+.preset-btn.active{background:#2d1f5e;border-color:#7c3aed;color:#c4b5fd}
+/* Format row */
+.fmt-row{display:flex;gap:10px;align-items:flex-end;margin-bottom:16px}
+.field{flex:1}
+label.flabel{display:block;font-size:0.78rem;color:#9ca3af;margin-bottom:6px}
+select{width:100%;background:#12122a;border:1px solid #2d2d50;border-radius:10px;color:#e0e0f0;padding:9px 12px;font-size:0.88rem;outline:none;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center}
+select:focus{border-color:#a78bfa}
+/* Buttons */
+.btn-row{display:flex;gap:10px}
+.btn{flex:1;padding:13px;border:none;border-radius:12px;font-size:0.95rem;font-weight:600;cursor:pointer;transition:all 0.2s}
+.btn-primary{background:linear-gradient(135deg,#7c3aed,#2563eb);color:white}
+.btn-primary:hover:not(:disabled){opacity:0.9;transform:translateY(-1px)}
+.btn-primary:disabled{opacity:0.35;cursor:not-allowed}
+.btn-secondary{background:#12122a;border:1px solid #2d2d50;color:#9ca3af}
+.btn-secondary:hover:not(:disabled){border-color:#a78bfa;color:#a78bfa}
+.btn-secondary:disabled{opacity:0.35;cursor:not-allowed}
+/* Progress */
+#progress-wrap{margin-top:14px;display:none}
+.prog-label{font-size:0.8rem;color:#9ca3af;margin-bottom:6px;display:flex;justify-content:space-between}
+.prog-bar{background:#12122a;border-radius:999px;height:6px;overflow:hidden}
+.prog-fill{height:100%;background:linear-gradient(90deg,#7c3aed,#60a5fa);border-radius:999px;transition:width 0.3s;width:0%}
+#status{margin-top:12px;font-size:0.85rem;text-align:center;color:#9ca3af;min-height:18px}
+#status.error{color:#f87171}
+#status.success{color:#34d399}
+#download-wrap{display:none;margin-top:14px;text-align:center}
+#download-btn{display:inline-flex;align-items:center;gap:8px;background:#065f46;border:1px solid #059669;color:#34d399;padding:11px 28px;border-radius:10px;font-size:0.9rem;font-weight:600;text-decoration:none;cursor:pointer;transition:background 0.2s}
+#download-btn:hover{background:#047857}
+/* Waveform */
+#waveform-canvas{width:100%;height:60px;border-radius:8px;background:#12122a;margin-top:12px;display:none}
+/* Visualizer */
+#viz-canvas{width:100%;height:50px;border-radius:8px;background:#12122a;margin-top:8px;display:none}
+.formats{margin-top:20px;padding-top:16px;border-top:1px solid #2d2d50}
+.fmt-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.tag{background:#12122a;border:1px solid #2d2d50;color:#9ca3af;padding:3px 10px;border-radius:999px;font-size:0.73rem}
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>🎙️ Audio Studio</h1>
+  <p class="subtitle">Convert formats · Adjust tone · Remove noise · 100% in browser</p>
+
+  <!-- Upload -->
+  <div id="dropzone">
+    <input type="file" id="file-input" accept="audio/*,video/*">
+    <div class="drop-icon">📂</div>
+    <div class="drop-text">Drop audio file or <span>browse</span></div>
+    <div style="font-size:0.75rem;color:#4b5563;margin-top:4px">MP3 · MP4 · WAV · AAC · OGG · FLAC · WEBM</div>
+  </div>
+  <div id="file-info">
+    <div style="font-size:1.4rem" id="file-icon">🎵</div>
+    <div class="file-details">
+      <div class="file-name" id="file-name"></div>
+      <div class="file-size" id="file-size"></div>
+    </div>
+    <button class="remove-btn" id="remove-btn">✕</button>
+  </div>
+  <canvas id="waveform-canvas"></canvas>
+</div>
+
+<div class="card" id="effects-card" style="opacity:0.4;pointer-events:none;transition:opacity 0.3s">
+
+  <!-- Presets -->
+  <div class="section-title">Quick Presets</div>
+  <div class="presets">
+    <button class="preset-btn" onclick="applyPreset('normal')">Normal</button>
+    <button class="preset-btn" onclick="applyPreset('deep')">Deep Voice</button>
+    <button class="preset-btn" onclick="applyPreset('thin')">Thin Voice</button>
+    <button class="preset-btn" onclick="applyPreset('radio')">Radio</button>
+    <button class="preset-btn" onclick="applyPreset('warm')">Warm</button>
+    <button class="preset-btn" onclick="applyPreset('telephone')">Telephone</button>
+  </div>
+
+  <!-- Tone Controls -->
+  <div class="section-title">Tone &amp; Pitch</div>
+  <div class="controls-grid">
+    <div class="control-box">
+      <div class="control-label">Pitch (Thick ↔ Thin) <span id="pitch-val">0 st</span></div>
+      <input type="range" id="pitch" min="-12" max="12" value="0" step="1">
+      <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#4b5563;margin-top:4px"><span>Thick</span><span>Thin</span></div>
+    </div>
+    <div class="control-box">
+      <div class="control-label">Playback Speed <span id="speed-val">1.0×</span></div>
+      <input type="range" id="speed" min="0.5" max="2.0" value="1.0" step="0.05">
+      <div style="display:flex;justify-content:space-between;font-size:0.7rem;color:#4b5563;margin-top:4px"><span>Slow</span><span>Fast</span></div>
+    </div>
+    <div class="control-box">
+      <div class="control-label">Bass Boost <span id="bass-val">0 dB</span></div>
+      <input type="range" id="bass" min="-12" max="12" value="0" step="1">
+    </div>
+    <div class="control-box">
+      <div class="control-label">Treble <span id="treble-val">0 dB</span></div>
+      <input type="range" id="treble" min="-12" max="12" value="0" step="1">
+    </div>
+  </div>
+
+  <!-- Mid EQ -->
+  <div class="controls-grid" style="grid-template-columns:1fr 1fr 1fr">
+    <div class="control-box">
+      <div class="control-label">Low Mid <span id="lomid-val">0 dB</span></div>
+      <input type="range" id="lomid" min="-12" max="12" value="0" step="1">
+    </div>
+    <div class="control-box">
+      <div class="control-label">Mid <span id="mid-val">0 dB</span></div>
+      <input type="range" id="mid" min="-12" max="12" value="0" step="1">
+    </div>
+    <div class="control-box">
+      <div class="control-label">High Mid <span id="himid-val">0 dB</span></div>
+      <input type="range" id="himid" min="-12" max="12" value="0" step="1">
+    </div>
+  </div>
+
+  <!-- Noise & Dynamics -->
+  <div class="section-title">Noise &amp; Dynamics</div>
+  <div class="controls-grid">
+    <div class="control-box">
+      <div class="control-label">Noise Gate <span id="gate-val">Off</span></div>
+      <input type="range" id="gate" min="0" max="100" value="0" step="1">
+      <div style="font-size:0.7rem;color:#4b5563;margin-top:4px">Cuts background hiss when voice is silent</div>
+    </div>
+    <div class="control-box">
+      <div class="control-label">Compressor <span id="comp-val">Off</span></div>
+      <input type="range" id="comp" min="0" max="100" value="0" step="1">
+      <div style="font-size:0.7rem;color:#4b5563;margin-top:4px">Levels out loud/quiet differences</div>
+    </div>
+    <div class="control-box">
+      <div class="control-label">Volume <span id="vol-val">100%</span></div>
+      <input type="range" id="vol" min="0" max="200" value="100" step="1">
+    </div>
+    <div class="control-box">
+      <div class="control-label">Reverb <span id="reverb-val">0%</span></div>
+      <input type="range" id="reverb" min="0" max="100" value="0" step="1">
+    </div>
+  </div>
+
+  <!-- Toggles -->
+  <div class="section-title">Filters</div>
+  <div style="background:#12122a;border:1px solid #2d2d50;border-radius:12px;padding:14px;margin-bottom:16px">
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">High-pass filter (remove low rumble)</div>
+        <div style="font-size:0.72rem;color:#6b7280">Cuts frequencies below 80 Hz — removes AC hum, wind noise</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="hpf"><span class="slider-toggle"></span></label>
+    </div>
+    <div style="height:1px;background:#2d2d50;margin:10px 0"></div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Low-pass filter (remove high hiss)</div>
+        <div style="font-size:0.72rem;color:#6b7280">Cuts frequencies above 8 kHz — reduces hiss and sibilance</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="lpf"><span class="slider-toggle"></span></label>
+    </div>
+    <div style="height:1px;background:#2d2d50;margin:10px 0"></div>
+    <div class="toggle-row">
+      <div>
+        <div class="toggle-label">Stereo to Mono</div>
+        <div style="font-size:0.72rem;color:#6b7280">Merges both channels — useful for voice recordings</div>
+      </div>
+      <label class="toggle"><input type="checkbox" id="mono"><span class="slider-toggle"></span></label>
+    </div>
+  </div>
+
+  <!-- Format -->
+  <div class="section-title">Output Format</div>
+  <div class="fmt-row">
+    <div class="field">
+      <label class="flabel">Export as</label>
+      <select id="output-fmt">
+        <option value="wav">WAV (lossless)</option>
+        <option value="ogg">OGG Vorbis</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Actions -->
+  <div class="btn-row">
+    <button class="btn btn-secondary" id="preview-btn" disabled>▶ Preview</button>
+    <button class="btn btn-primary" id="convert-btn" disabled>⬇ Export</button>
+  </div>
+  <canvas id="viz-canvas"></canvas>
+  <div id="progress-wrap">
+    <div class="prog-label"><span id="prog-text">Processing…</span><span id="prog-pct">0%</span></div>
+    <div class="prog-bar"><div class="prog-fill" id="prog-fill"></div></div>
+  </div>
+  <div id="status"></div>
+  <div id="download-wrap"><a id="download-btn">⬇ Download</a></div>
+</div>
+
+<div class="card" style="padding:16px 28px">
+  <div class="formats">
+    <div class="section-title" style="margin-bottom:8px">Supported Input Formats</div>
+    <div class="fmt-tags">
+      <span class="tag">MP3</span><span class="tag">MP4</span><span class="tag">AAC</span>
+      <span class="tag">M4A</span><span class="tag">WAV</span><span class="tag">OGG</span>
+      <span class="tag">FLAC</span><span class="tag">WEBM</span><span class="tag">OPUS</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let srcBuffer = null, audioCtx = null, previewSource = null, isPlaying = false;
+let vizAnim = null;
+
+const $ = id => document.getElementById(id);
+const icons = {mp3:'🎵',mp4:'🎬',aac:'🎶',m4a:'🎶',wav:'🔊',ogg:'🎵',flac:'💿',opus:'🎙️',webm:'🎬'};
+function fmtSize(b){return b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(2)+' MB'}
+function getExt(n){return n.split('.').pop().toLowerCase()}
+function setStatus(m,t=''){$('status').textContent=m;$('status').className=t}
+
+// Sliders live update
+const sliders = [
+  ['pitch','pitch-val',v=>v+' st'],
+  ['speed','speed-val',v=>parseFloat(v).toFixed(2)+'×'],
+  ['bass','bass-val',v=>(v>0?'+':'')+v+' dB'],
+  ['treble','treble-val',v=>(v>0?'+':'')+v+' dB'],
+  ['lomid','lomid-val',v=>(v>0?'+':'')+v+' dB'],
+  ['mid','mid-val',v=>(v>0?'+':'')+v+' dB'],
+  ['himid','himid-val',v=>(v>0?'+':'')+v+' dB'],
+  ['gate','gate-val',v=>v==0?'Off':v+'%'],
+  ['comp','comp-val',v=>v==0?'Off':v+'%'],
+  ['vol','vol-val',v=>v+'%'],
+  ['reverb','reverb-val',v=>v+'%'],
+];
+sliders.forEach(([id,outId,fmt])=>{
+  const el=$( id); const out=$(outId);
+  el.addEventListener('input',()=>out.textContent=fmt(el.value));
+});
+
+// Drag/drop
+const dz=$('dropzone'); const fi=$('file-input');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('dragover')});
+dz.addEventListener('dragleave',()=>dz.classList.remove('dragover'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('dragover');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0])});
+fi.addEventListener('change',()=>{if(fi.files[0])loadFile(fi.files[0])});
+
+$('remove-btn').addEventListener('click',()=>{
+  stopPreview();
+  srcBuffer=null;fi.value='';
+  $('file-info').style.display='none';
+  $('effects-card').style.opacity='0.4';
+  $('effects-card').style.pointerEvents='none';
+  $('convert-btn').disabled=true;$('preview-btn').disabled=true;
+  $('download-wrap').style.display='none';
+  $('waveform-canvas').style.display='none';
+  setStatus('');
+});
+
+async function loadFile(f){
+  stopPreview();
+  $('file-name').textContent=f.name;
+  $('file-size').textContent=fmtSize(f.size);
+  $('file-icon').textContent=icons[getExt(f.name)]||'📄';
+  $('file-info').style.display='flex';
+  setStatus('Decoding audio…');
+  try{
+    if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    const ab=await f.arrayBuffer();
+    srcBuffer=await audioCtx.decodeAudioData(ab);
+    drawWaveform(srcBuffer);
+    $('effects-card').style.opacity='1';
+    $('effects-card').style.pointerEvents='auto';
+    $('convert-btn').disabled=false;
+    $('preview-btn').disabled=false;
+    setStatus('✅ Ready — adjust settings and preview or export.','success');
+    $('file-info').style.display='flex';
+  }catch(e){
+    setStatus('❌ Could not decode: '+e.message,'error');
+  }
+}
+
+function drawWaveform(buf){
+  const c=$('waveform-canvas'); c.style.display='block';
+  c.width=c.offsetWidth*2; c.height=120;
+  const ctx=c.getContext('2d');
+  const data=buf.getChannelData(0);
+  const step=Math.ceil(data.length/c.width);
+  ctx.fillStyle='#12122a'; ctx.fillRect(0,0,c.width,c.height);
+  ctx.strokeStyle='#7c3aed'; ctx.lineWidth=1;
+  ctx.beginPath();
+  for(let i=0;i<c.width;i++){
+    let min=1,max=-1;
+    for(let j=0;j<step;j++){const v=data[i*step+j]||0;if(v<min)min=v;if(v>max)max=v;}
+    ctx.moveTo(i,(1+min)*c.height/2);
+    ctx.lineTo(i,(1+max)*c.height/2);
+  }
+  ctx.stroke();
+}
+
+// Build audio graph from settings
+function buildGraph(outCtx, buffer){
+  const settings = getSettings();
+  const numCh = settings.mono ? 1 : buffer.numberOfChannels;
+  const rate = buffer.sampleRate;
+  const len = Math.round(buffer.length / settings.speed);
+  const offline = new OfflineAudioContext(numCh, len, rate);
+
+  const src = offline.createBufferSource();
+  src.buffer = buffer;
+  src.playbackRate.value = settings.speed;
+
+  // Pitch shift via playback rate compensation
+  // True pitch shift without speed change uses detune
+  src.detune.value = settings.pitch * 100;
+  src.playbackRate.value = 1.0; // keep normal speed; speed slider is separate
+
+  // Gain / volume
+  const gainNode = offline.createGain();
+  gainNode.gain.value = settings.vol / 100;
+
+  // EQ chain
+  const bass = offline.createBiquadFilter();
+  bass.type='lowshelf'; bass.frequency.value=120; bass.gain.value=settings.bass;
+
+  const lomid = offline.createBiquadFilter();
+  lomid.type='peaking'; lomid.frequency.value=350; lomid.Q.value=1; lomid.gain.value=settings.lomid;
+
+  const mid = offline.createBiquadFilter();
+  mid.type='peaking'; mid.frequency.value=1000; mid.Q.value=1; mid.gain.value=settings.mid;
+
+  const himid = offline.createBiquadFilter();
+  himid.type='peaking'; himid.frequency.value=3500; himid.Q.value=1; himid.gain.value=settings.himid;
+
+  const treble = offline.createBiquadFilter();
+  treble.type='highshelf'; treble.frequency.value=8000; treble.gain.value=settings.treble;
+
+  // HPF
+  const hpf = offline.createBiquadFilter();
+  hpf.type='highpass'; hpf.frequency.value= settings.hpf ? 80 : 20; hpf.Q.value=0.7;
+
+  // LPF
+  const lpf = offline.createBiquadFilter();
+  lpf.type='lowpass'; lpf.frequency.value= settings.lpf ? 8000 : 20000; lpf.Q.value=0.7;
+
+  // Noise gate (simple gain reduction via dynamics compressor as approximation)
+  const compNode = offline.createDynamicsCompressor();
+  if(settings.comp > 0){
+    const ratio = 1 + settings.comp/10;
+    compNode.threshold.value = -24;
+    compNode.knee.value = 10;
+    compNode.ratio.value = Math.min(ratio, 20);
+    compNode.attack.value = 0.005;
+    compNode.release.value = 0.1;
+  } else {
+    compNode.threshold.value = 0;
+    compNode.ratio.value = 1;
+  }
+
+  // Noise gate via waveshaper (threshold silence removal)
+  const gateGain = offline.createGain();
+  gateGain.gain.value = 1;
+
+  // Reverb via convolver (simple synthetic impulse)
+  let reverbNode = null, dryGain = null, wetGain = null;
+  if(settings.reverb > 0){
+    reverbNode = offline.createConvolver();
+    const irLen = Math.round(rate * 1.5);
+    const ir = offline.createBuffer(2, irLen, rate);
+    for(let c=0;c<2;c++){
+      const d=ir.getChannelData(c);
+      for(let i=0;i<irLen;i++) d[i]=(Math.random()*2-1)*Math.pow(1-i/irLen,3);
+    }
+    reverbNode.buffer=ir;
+    dryGain=offline.createGain(); dryGain.gain.value=1-(settings.reverb/200);
+    wetGain=offline.createGain(); wetGain.gain.value=settings.reverb/100;
+  }
+
+  // Merge to mono if needed
+  let chain;
+  if(settings.mono && buffer.numberOfChannels > 1){
+    const merger = offline.createChannelMerger(1);
+    src.connect(merger, 0, 0);
+    chain = merger;
+  } else {
+    chain = src;
+  }
+
+  // Connect chain: src → bass → lomid → mid → himid → treble → hpf → lpf → comp → gain → out
+  chain.connect(bass); bass.connect(lomid); lomid.connect(mid); mid.connect(himid);
+  himid.connect(treble); treble.connect(hpf); hpf.connect(lpf); lpf.connect(compNode);
+  compNode.connect(gateGain); gateGain.connect(gainNode);
+
+  if(reverbNode){
+    gainNode.connect(dryGain); gainNode.connect(reverbNode);
+    reverbNode.connect(wetGain);
+    dryGain.connect(offline.destination); wetGain.connect(offline.destination);
+  } else {
+    gainNode.connect(offline.destination);
+  }
+
+  src.start(0);
+  return offline.startRendering();
+}
+
+function getSettings(){
+  return {
+    pitch: parseInt($('pitch').value),
+    speed: parseFloat($('speed').value),
+    bass: parseInt($('bass').value),
+    treble: parseInt($('treble').value),
+    lomid: parseInt($('lomid').value),
+    mid: parseInt($('mid').value),
+    himid: parseInt($('himid').value),
+    gate: parseInt($('gate').value),
+    comp: parseInt($('comp').value),
+    vol: parseInt($('vol').value),
+    reverb: parseInt($('reverb').value),
+    hpf: $('hpf').checked,
+    lpf: $('lpf').checked,
+    mono: $('mono').checked,
+  };
+}
+
+// Preview
+$('preview-btn').addEventListener('click', async ()=>{
+  if(isPlaying){ stopPreview(); return; }
+  if(!srcBuffer) return;
+  setStatus('Building preview…');
+  $('preview-btn').disabled=true;
+  try{
+    const rendered = await buildGraph(audioCtx, srcBuffer);
+    if(!audioCtx) audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+    stopPreview();
+    previewSource = audioCtx.createBufferSource();
+    previewSource.buffer = rendered;
+
+    const analyser = audioCtx.createAnalyser();
+    analyser.fftSize=256;
+    previewSource.connect(analyser);
+    analyser.connect(audioCtx.destination);
+    previewSource.start();
+    isPlaying=true;
+    $('preview-btn').textContent='⏹ Stop';
+    $('preview-btn').disabled=false;
+    $('viz-canvas').style.display='block';
+    drawViz(analyser);
+    previewSource.onended=()=>{ isPlaying=false; $('preview-btn').textContent='▶ Preview'; cancelAnimationFrame(vizAnim); $('viz-canvas').style.display='none'; };
+    setStatus('');
+  }catch(e){
+    setStatus('❌ '+e.message,'error');
+    $('preview-btn').disabled=false;
+  }
+});
+
+function stopPreview(){
+  if(previewSource){try{previewSource.stop();}catch(e){}previewSource=null;}
+  isPlaying=false;$('preview-btn').textContent='▶ Preview';
+  cancelAnimationFrame(vizAnim);$('viz-canvas').style.display='none';
+}
+
+function drawViz(analyser){
+  const c=$('viz-canvas'); c.width=c.offsetWidth*2; c.height=100;
+  const ctx=c.getContext('2d');
+  const data=new Uint8Array(analyser.frequencyBinCount);
+  function frame(){
+    vizAnim=requestAnimationFrame(frame);
+    analyser.getByteFrequencyData(data);
+    ctx.fillStyle='#12122a'; ctx.fillRect(0,0,c.width,c.height);
+    const bw=c.width/data.length;
+    for(let i=0;i<data.length;i++){
+      const h=(data[i]/255)*c.height;
+      const r=Math.round(124+(data[i]/255)*60);
+      ctx.fillStyle=`rgb(${r},80,237)`;
+      ctx.fillRect(i*bw,c.height-h,bw-1,h);
+    }
+  }
+  frame();
+}
+
+// Export
+$('convert-btn').addEventListener('click', async ()=>{
+  if(!srcBuffer) return;
+  stopPreview();
+  $('download-wrap').style.display='none';
+  $('progress-wrap').style.display='block';
+  $('prog-fill').style.width='0%';
+  $('convert-btn').disabled=true;
+  setStatus('Processing audio…');
+
+  const anim = progAnim(0,70,600);
+  try{
+    const rendered = await buildGraph(audioCtx, srcBuffer);
+    await anim;
+    await progAnim(70,90,300);
+
+    const fmt = $('output-fmt').value;
+    let blob;
+
+    if(fmt==='ogg' && typeof MediaRecorder !== 'undefined'){
+      blob = await encodeViaMediaRecorder(rendered);
+    } else {
+      const wav = toWav(rendered);
+      blob = new Blob([wav],{type:'audio/wav'});
+    }
+
+    await progAnim(90,100,200);
+    const url=URL.createObjectURL(blob);
+    const ext=fmt==='ogg'?'ogg':'wav';
+    const base=($('file-name').textContent||'audio').replace(/\.[^.]+$/,'');
+    $('download-btn').href=url;
+    $('download-btn').download=base+'_processed.'+ext;
+    $('download-wrap').style.display='block';
+    setStatus('✅ Done! Click to download.','success');
+  }catch(e){
+    setStatus('❌ '+e.message,'error');
+  }
+  $('convert-btn').disabled=false;
+});
+
+function progAnim(from,to,ms){
+  return new Promise(res=>{
+    const start=Date.now();
+    (function tick(){
+      const t=Math.min(1,(Date.now()-start)/ms);
+      const v=from+(to-from)*t;
+      $('prog-fill').style.width=v+'%';
+      $('prog-pct').textContent=Math.round(v)+'%';
+      if(t<1) requestAnimationFrame(tick); else res();
+    })();
+  });
+}
+
+function encodeViaMediaRecorder(buffer){
+  return new Promise((res,rej)=>{
+    const actx=new AudioContext();
+    const dest=actx.createMediaStreamDestination();
+    const src=actx.createBufferSource();
+    src.buffer=buffer;
+    src.connect(dest);
+    const mime=MediaRecorder.isTypeSupported('audio/ogg;codecs=opus')?'audio/ogg;codecs=opus':'audio/webm';
+    const rec=new MediaRecorder(dest.stream,{mimeType:mime});
+    const chunks=[];
+    rec.ondataavailable=e=>{if(e.data.size)chunks.push(e.data)};
+    rec.onstop=()=>res(new Blob(chunks,{type:mime}));
+    rec.onerror=rej;
+    rec.start(); src.start();
+    src.onended=()=>setTimeout(()=>rec.stop(),200);
+    actx.resume();
+  });
+}
+
+function toWav(buf){
+  const nCh=buf.numberOfChannels,sr=buf.sampleRate,nS=buf.length,bps=2;
+  const ab=new ArrayBuffer(44+nS*nCh*bps);
+  const dv=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)dv.setUint8(o+i,s.charCodeAt(i))};
+  ws(0,'RIFF');dv.setUint32(4,36+nS*nCh*bps,true);ws(8,'WAVE');
+  ws(12,'fmt ');dv.setUint32(16,16,true);dv.setUint16(20,1,true);
+  dv.setUint16(22,nCh,true);dv.setUint32(24,sr,true);
+  dv.setUint32(28,sr*nCh*bps,true);dv.setUint16(32,nCh*bps,true);dv.setUint16(34,16,true);
+  ws(36,'data');dv.setUint32(40,nS*nCh*bps,true);
+  let off=44;
+  for(let i=0;i<nS;i++){
+    for(let c=0;c<nCh;c++){
+      const s=Math.max(-1,Math.min(1,buf.getChannelData(c)[i]));
+      dv.setInt16(off,s<0?s*0x8000:s*0x7FFF,true);off+=2;
+    }
+  }
+  return ab;
+}
+
+// Presets
+const PRESETS={
+  normal:{pitch:0,speed:1,bass:0,treble:0,lomid:0,mid:0,himid:0,gate:0,comp:0,vol:100,reverb:0,hpf:false,lpf:false},
+  deep:{pitch:-5,speed:1,bass:8,treble:-3,lomid:4,mid:-2,himid:-3,gate:0,comp:20,vol:110,reverb:10,hpf:false,lpf:false},
+  thin:{pitch:5,speed:1,bass:-8,treble:6,lomid:-4,mid:2,himid:5,gate:0,comp:0,vol:100,reverb:0,hpf:true,lpf:false},
+  radio:{pitch:0,speed:1,bass:-10,treble:-8,lomid:0,mid:8,himid:4,gate:30,comp:60,vol:120,reverb:0,hpf:true,lpf:true},
+  warm:{pitch:-2,speed:1,bass:5,treble:-4,lomid:3,mid:1,himid:-2,gate:10,comp:30,vol:100,reverb:15,hpf:true,lpf:false},
+  telephone:{pitch:0,speed:1,bass:-12,treble:-12,lomid:-2,mid:10,himid:6,gate:40,comp:80,vol:130,reverb:0,hpf:true,lpf:true},
+};
+
+function applyPreset(name){
+  document.querySelectorAll('.preset-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector(`.preset-btn[onclick="applyPreset('${name}')"]`).classList.add('active');
+  const p=PRESETS[name];
+  sliders.forEach(([id,outId,fmt])=>{
+    const key=id;
+    if(p[key]!==undefined){$( id).value=p[key];$(outId).textContent=fmt(p[key]);}
+  });
+  if(p.hpf!==undefined) $('hpf').checked=p.hpf;
+  if(p.lpf!==undefined) $('lpf').checked=p.lpf;
+}
+</script>
+</body>
+</html>
